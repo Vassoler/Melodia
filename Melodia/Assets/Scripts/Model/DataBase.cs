@@ -1,6 +1,7 @@
 ﻿using Mono.Data.Sqlite;
 using System.Data;
 using System;
+using System.IO;
 using UnityEngine;
 using System.Collections.Generic;
 
@@ -10,37 +11,56 @@ public class DataBase
     private string connectionString;
 
     public DataBase()
-    {        
+    {
+        Debug.Log("Criação do banco.");
         if (Application.platform != RuntimePlatform.Android)
         {
-            this.connectionString = "URI=file:" + Application.dataPath + "/" + database;
+            this.connectionString = Application.dataPath + "/StreamingAssets/"+database;
+
+            if (!File.Exists(connectionString))
+            {
+                File.Create(connectionString);
+            }
+            connectionString = "URI=file:" + connectionString;
             string pathSQL = Application.streamingAssetsPath + "/melodia.sql";
             string sqlFile = System.IO.File.ReadAllText(@pathSQL);
             IniciarBase(sqlFile);
         }
         else
         {
-            connectionString = Application.persistentDataPath + "/" + database;
-            if (!System.IO.File.Exists(connectionString))
+            Debug.Log("Banco para Android");
+            this.connectionString = Application.persistentDataPath + "/" + database;
+            if (!File.Exists(connectionString))
             {
+                Debug.Log("Criação banco para Android");
                 WWW load = new WWW("jar:file://" + Application.dataPath + "!/assets/" + database);
                 while (!load.isDone) { }
 
-                System.IO.File.WriteAllBytes(connectionString, load.bytes);
+                File.WriteAllBytes(this.connectionString, load.bytes);
+                
             }
+            this.connectionString = "URI=file:" + connectionString;
 
-            string path = "jar:file://" + Application.dataPath + "!/assets/melodia.sql";
+            /*string path = "jar:file://" + Application.dataPath + "!/assets/melodia.sql";
             WWW wwwfile = new WWW(path);
             while (!wwwfile.isDone) { }
             var pathSQL = Application.persistentDataPath + "/melodia.sql"; ;
-            System.IO.File.WriteAllBytes(pathSQL, wwwfile.bytes);
-            string sqlFile = System.IO.File.ReadAllText(@pathSQL);
+            File.WriteAllBytes(pathSQL, wwwfile.bytes);
+            string sqlFile = File.ReadAllText(@pathSQL);
+            IniciarBase(sqlFile);*/
+
+            string oriPath = Application.streamingAssetsPath + "/melodia.sql";
+
+            // Android only use WWW to read file
+            WWW reader = new WWW(oriPath);
+            while (!reader.isDone) { }
+
+            string sqlFile = reader.text;
             IniciarBase(sqlFile);
         }
         
         
     }
-
 
     public Dictionary<int, List<string>> Select(string query)
     {
@@ -52,7 +72,7 @@ public class DataBase
     public Dictionary<int, List<string>> Select(string query, Dictionary<string,string> param)
     {
         Dictionary<int, List<string>> retorno = new Dictionary<int, List<string>>(); ;
-        using (var connection = new SqliteConnection("URI=file:" + this.connectionString))
+        using (var connection = new SqliteConnection(this.connectionString))
         {
             connection.Open();
             using (var command = connection.CreateCommand())
@@ -86,7 +106,7 @@ public class DataBase
 
     public int Insert(string query, Dictionary<string, string> param)
     {
-        using (var connection = new SqliteConnection("URI=file:" + connectionString))
+        using (var connection = new SqliteConnection(this.connectionString))
         {
             connection.Open();
             using (var transaction = connection.BeginTransaction())
@@ -125,14 +145,17 @@ public class DataBase
     }
 
     private void IniciarBase(string sqlFile)
-    {       
+    {
+        Debug.Log(sqlFile);
 
         Dictionary<int, List<string>> retorno = Select("SELECT name FROM sqlite_master WHERE type='table' AND name='login';");
+
+        Debug.Log(retorno.Count);
 
         if(retorno.Count == 0)
         {
             
-            using (var connection = new SqliteConnection("URI=file:" + this.connectionString))
+            using (var connection = new SqliteConnection(this.connectionString))
             {
                 connection.Open();
                 using (var transaction = connection.BeginTransaction())
