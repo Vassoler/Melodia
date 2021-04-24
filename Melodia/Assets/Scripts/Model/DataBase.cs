@@ -8,14 +8,39 @@ public class DataBase
 {
     private string database = "melodia_database.db";
     private string connectionString;
-    private string pathSQL;
 
     public DataBase()
-    {
-        this.connectionString = "URI=file:" + Application.dataPath + "/" + database;
-        this.pathSQL = Application.streamingAssetsPath + "/melodia.sql";
-        IniciarBase();
+    {        
+        if (Application.platform != RuntimePlatform.Android)
+        {
+            this.connectionString = "URI=file:" + Application.dataPath + "/" + database;
+            string pathSQL = Application.streamingAssetsPath + "/melodia.sql";
+            string sqlFile = System.IO.File.ReadAllText(@pathSQL);
+            IniciarBase(sqlFile);
+        }
+        else
+        {
+            connectionString = Application.persistentDataPath + "/" + database;
+            if (!System.IO.File.Exists(connectionString))
+            {
+                WWW load = new WWW("jar:file://" + Application.dataPath + "!/assets/" + database);
+                while (!load.isDone) { }
+
+                System.IO.File.WriteAllBytes(connectionString, load.bytes);
+            }
+
+            string path = "jar:file://" + Application.dataPath + "!/assets/melodia.sql";
+            WWW wwwfile = new WWW(path);
+            while (!wwwfile.isDone) { }
+            var pathSQL = Application.persistentDataPath + "/melodia.sql"; ;
+            System.IO.File.WriteAllBytes(pathSQL, wwwfile.bytes);
+            string sqlFile = System.IO.File.ReadAllText(@pathSQL);
+            IniciarBase(sqlFile);
+        }
+        
+        
     }
+
 
     public Dictionary<int, List<string>> Select(string query)
     {
@@ -27,7 +52,7 @@ public class DataBase
     public Dictionary<int, List<string>> Select(string query, Dictionary<string,string> param)
     {
         Dictionary<int, List<string>> retorno = new Dictionary<int, List<string>>(); ;
-        using (var connection = new SqliteConnection(this.connectionString))
+        using (var connection = new SqliteConnection("URI=file:" + this.connectionString))
         {
             connection.Open();
             using (var command = connection.CreateCommand())
@@ -61,7 +86,7 @@ public class DataBase
 
     public int Insert(string query, Dictionary<string, string> param)
     {
-        using (var connection = new SqliteConnection(connectionString))
+        using (var connection = new SqliteConnection("URI=file:" + connectionString))
         {
             connection.Open();
             using (var transaction = connection.BeginTransaction())
@@ -99,16 +124,15 @@ public class DataBase
         return string.Format(dateTimeFormat, datetime.Year, datetime.Month, datetime.Day, datetime.Hour, datetime.Minute, datetime.Second, datetime.Millisecond);
     }
 
-    private void IniciarBase()
-    {
-        string sql = System.IO.File.ReadAllText(@pathSQL);
+    private void IniciarBase(string sqlFile)
+    {       
 
         Dictionary<int, List<string>> retorno = Select("SELECT name FROM sqlite_master WHERE type='table' AND name='login';");
 
         if(retorno.Count == 0)
         {
             
-            using (var connection = new SqliteConnection(this.connectionString))
+            using (var connection = new SqliteConnection("URI=file:" + this.connectionString))
             {
                 connection.Open();
                 using (var transaction = connection.BeginTransaction())
@@ -116,7 +140,7 @@ public class DataBase
                     using (var command = connection.CreateCommand())
                     {
 
-                        command.CommandText = sql;
+                        command.CommandText = sqlFile;
                         command.CommandType = CommandType.Text;
 
                         command.Transaction = transaction;
