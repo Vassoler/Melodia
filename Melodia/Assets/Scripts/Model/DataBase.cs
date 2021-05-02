@@ -30,6 +30,7 @@ public class DataBase
         {
             Debug.Log("Banco para Android");
             this.connectionString = Application.persistentDataPath + "/" + database;
+
             if (!File.Exists(connectionString))
             {
                 Debug.Log("Criação banco para Android");
@@ -146,13 +147,11 @@ public class DataBase
 
     private void IniciarBase(string sqlFile)
     {
-        Debug.Log(sqlFile);
-
         Dictionary<int, List<string>> retorno = Select("SELECT name FROM sqlite_master WHERE type='table' AND name='login';");
 
-        Debug.Log(retorno.Count);
 
         if(retorno.Count == 0)
+        //if(true)
         {
             
             using (var connection = new SqliteConnection(this.connectionString))

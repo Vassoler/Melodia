@@ -1,3 +1,14 @@
+drop table IF EXISTS jogador;
+drop table IF EXISTS login;
+drop table IF EXISTS dificuldade;
+drop table IF EXISTS nivel;
+drop table IF EXISTS partida;
+drop table IF EXISTS elemento;
+drop table IF EXISTS desafio;
+drop table IF EXISTS partida_desafio;
+drop table IF EXISTS questionario;
+drop table IF EXISTS questionario_resposta;
+
 create table jogador (
     id integer primary key,
     sexo varchar(20),
